@@ -1,0 +1,49 @@
+{
+  "name": "app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "run-s next:build next:export",
+    "lint": "run-s lint*",
+    "lint:eslint": "eslint ./pages/* --config .eslintrc.js --ignore-path .eslintrc.js",
+    "lint:prettier": "prettier ./pages/* --write --config prettier.config.js",
+    "next:dev": "next dev",
+    "next:build": "next build",
+    "next:export": "next export",
+    "preview": "run-s next:build next:export ",
+    "preview:surge": "surge ./out ndn-skoden.surge.sh"
+  },
+  "dependencies": {
+    "@tailwindcss/ui": "^0.5.0",
+    "axios": "^0.20.0",
+    "framer": "^1.2.7",
+    "framer-motion": "^2.6.15",
+    "google-spreadsheet": "^3.0.13",
+    "mapbox-gl": "^1.12.0",
+    "next": "9.5.3",
+    "react": "16.13.1",
+    "react-dom": "16.13.1",
+    "react-hook-form": "^6.8.3",
+    "react-mapbox-gl": "^4.8.6",
+    "react-query": "^2.23.1",
+    "react-use-dimensions": "^1.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^14.6.4",
+    "@types/react": "^16.9.49",
+    "dotenv": "^8.2.0",
+    "eslint": "^7.8.1",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "eslint-plugin-react": "^7.20.5",
+    "next-compose-plugins": "^2.2.0",
+    "next-images": "^1.6.0",
+    "next-transpile-modules": "^4.1.0",
+    "npm-run-all": "^4.1.5",
+    "postcss-inline-svg": "^4.1.0",
+    "prettier": "^2.1.2",
+    "tailwindcss": "^1.7.6",
+    "typescript": "^4.0.2"
+  }
+}
