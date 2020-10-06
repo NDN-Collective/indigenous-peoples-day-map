@@ -37,7 +37,7 @@ function useEvents() {
 }
 
 const Map = ReactMapboxGl({
-  accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN,
+  accessToken: 'pk.eyJ1Ijoia2VsbHltZWFycyIsImEiOiJDRWJGSnY0In0.chvkNAOsFpqhjbjcOIBZOA',
   injectCSS: false,
 })
 
