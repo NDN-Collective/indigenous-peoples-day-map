@@ -142,7 +142,6 @@ const ReactMapboxFactory = ({
   refreshExpiredTiles = true,
   failIfMajorPerformanceCaveat = false,
   bearingSnap = 7,
-  injectCSS = true,
   antialias = false,
   transformRequest
 }: FactoryParameters) => {

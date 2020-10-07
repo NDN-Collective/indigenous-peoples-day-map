@@ -1,31 +1,31 @@
-import {useState} from 'react'
+import Datetime from 'react-datetime'
+import React, {useState} from 'react'
+import axios from 'axios'
+import {useForm} from 'react-hook-form'
+import * as Moment from 'moment'
 
-const Slide = () => {
+const Slide = ({events}) => {
   const [open, setOpen] = useState(false)
-  const toggle = () => {
-    setOpen(!open)
-  }
-
   return (
     <>
       <div
-        onClick={toggle}
-        className="absolute right-0 z-10 p-4 button">
+        onClick={() => setOpen(!open)}
+        className="absolute left-0 z-10 p-2 button">
         <Add />
       </div>
-      <Menu toggle={toggle} open={open} />
+      <Menu events={events} toggle={() => setOpen(!open)} open={open} />
     </>
   )
 }
 
-const Menu = ({toggle, open}) => (
+const Menu = ({toggle, open, events}) => (
   <div
     className={`fixed inset-0 z-10 overflow-hidden transform transition ease-in-out duration-500 sm:duration-700 ${
-      open ? 'translate-x-full' : 'translate-x-0'
+      open ? 'translate-x-0' : 'translate-x-full'
     }`}>
     <div className="absolute inset-0 overflow-hidden">
-      <section className="absolute inset-y-0 right-0 flex max-w-full pl-16">
-        <Panel toggle={toggle} open={open} />
+      <section className="absolute inset-y-0 right-0 flex max-w-full lg:pl-16">
+        <Panel events={events} toggle={toggle} open={open} />
       </section>
     </div>
   </div>
@@ -40,7 +40,7 @@ const Header = ({toggle}) => (
 
       <div className="flex items-center h-7">
         <button
-          onClick={() => toggle()}
+          onClick={toggle}
           aria-label="Close panel"
           className="text-white transition duration-150 ease-in-out hover:text-white">
           <svg
@@ -50,9 +50,9 @@ const Header = ({toggle}) => (
             viewBox="0 0 24 24"
             stroke="currentColor">
             <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
               d="M6 18L18 6M6 6l12 12"
             />
           </svg>
@@ -69,165 +69,332 @@ const Header = ({toggle}) => (
   </header>
 )
 
-const Panel = ({toggle, open}) => (
-  <div className={`w-screen max-w-md`}>
-    <div className="flex flex-col h-full bg-white divide-y divide-gray-200 shadow-xl">
-      <div className="flex-1 h-0 overflow-y-auto">
-        <Header toggle={toggle} />
+const accessToken =
+  'pk.eyJ1Ijoia2VsbHltZWFycyIsImEiOiJDRWJGSnY0In0.chvkNAOsFpqhjbjcOIBZOA'
 
-        <div className="flex flex-col justify-between flex-1">
-          <div className="px-4 divide-y divide-gray-200 sm:px-6">
-            <div className="pt-6 pb-5 space-y-6">
-              <div className="space-y-1">
-                <label
-                  htmlFor="title"
-                  className="block text-sm font-medium leading-5 text-gray-900">
-                  Event name
-                </label>
-                <div className="relative rounded-md shadow-sm">
-                  <input
-                    name="title"
-                    id="title"
-                    className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
-                  />
-                </div>
-              </div>
+const Panel = ({toggle, open, events}) => {
+  const [date, setDate] = useState<Moment.Moment | string>('')
+  const [latitude, setLatitude] = useState(0)
+  const [longitude, setLongitude] = useState(0)
+  const [publicContact, setPublicContact] = useState(false)
 
-              <div className="space-y-1">
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium leading-5 text-gray-900">
-                  Event description
-                </label>
+  const {register, handleSubmit, watch, errors} = useForm()
 
-                <div className="relative rounded-md shadow-sm">
-                  <textarea
-                    name="description"
-                    id="description"
-                    rows={4}
-                    className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
-                  />
-                </div>
-              </div>
+  const onSubmit = async data => {
 
-              <div className="space-y-1">
-                <label
-                  htmlFor="project_name"
-                  className="block text-sm font-medium leading-5 text-gray-900">
-                  Email
-                </label>
+    await axios({
+      method: 'get',
+      url: `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(data.event_city)},${encodeURIComponent(data.event_street_address)},${encodeURIComponent(data.event_state)},${encodeURIComponent(data.event_zip)},${encodeURIComponent('United States')}.json?types=address&access_token=${accessToken}`,
+    }).then(res => {
+      console.log(res)
+      const primary = res?.data?.features?.[0]
+      console.log(primary)
 
-                <div className="relative rounded-md shadow-sm">
-                  <input
-                    name="email"
-                    id="email"
-                    type="email"
-                    className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
-                  />
-                </div>
-              </div>
+      if (primary?.center) {
+        setLongitude(primary.center[0])
+        setLatitude(primary.center[1])
+      }
+    }).catch(err => console.error(err))
 
-              <fieldset className="space-y-2">
-                <legend className="text-sm font-medium leading-5 text-gray-900">
-                  Event type
-                </legend>
+    await axios({
+      method: 'post',
+      url: `/.netlify/functions/google-sheet-fn`,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: JSON.stringify({
+        email: data.email ?? '',
+        first_name: data.first_name ?? '',
+        last_name: data.last_name ?? '',
+        public_contact: data.publicContact ?? false,
+        event_street: data.event_street_address ?? '',
+        event_venue: data.event_venue ?? '',
+        event_name: data.event_name ?? '',
+        event_description: data.event_description ?? '',
+        event_city: data.event_city ?? '',
+        event_state: data.event_state ?? '',
+        event_zip: data.event_zip ?? '',
+        event_date: date,
+        event_longitude: longitude,
+        event_latitude: latitude,
+      }),
+    })
+      .then(res => {
+        if (res.status == 200) {
+          console.log('woo')
+        }
+      })
+      .catch(err => console.log(err))
+  }
 
-                <div className="space-y-5">
-                  <div className="relative flex items-start">
-                    <div className="absolute flex items-center h-5">
-                      <input
-                        id="privacy_public"
-                        aria-describedby="privacy_public_description"
-                        type="radio"
-                        name="privacy"
-                        className="w-4 h-4 transition duration-150 ease-in-out text-red form-radio"
-                      />
+  return (
+    <div className={`w-screen max-w-md`}>
+      <div className="flex flex-col h-full bg-white divide-y divide-gray-200 shadow-xl">
+        <div className="flex-1 h-0 overflow-y-auto">
+          <Header toggle={toggle} />
+
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="flex flex-col justify-between flex-1">
+              <div className="px-4 divide-y divide-gray-200 sm:px-6">
+                <div className="pt-4 mt-4">
+                  <div>
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">
+                      About the event
+                    </h3>
+                    <p className="mt-1 text-sm leading-5 text-gray-500">
+                      Help us promote your Indigenous Peoples Day
+                      event by telling us more about it.
+                    </p>
+                  </div>
+
+                  <div className="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:pt-5">
+                    <label
+                      htmlFor="event_name"
+                      className="block text-sm font-medium leading-5 text-gray-700 sm:mt-px sm:pt-2">
+                      Event name
+                    </label>
+                    <div className="mt-1 sm:mt-0 sm:col-span-2">
+                      <div className="flex max-w-lg rounded-md shadow-sm">
+                        <input
+                          name="event_name"
+                          id="event_name"
+                          ref={register({required: true})}
+                          className="flex-1 block w-full min-w-0 transition duration-150 ease-in-out rounded-none form-input rounded-r-md sm:text-sm sm:leading-5"
+                        />
+                      </div>
                     </div>
+                  </div>
 
-                    <div className="text-sm leading-5 pl-7">
-                      <label
-                        htmlFor="privacy_public"
-                        className="font-medium text-gray-900">
-                        Creative action
-                      </label>
-                      <p
-                        id="privacy_public_description"
-                        className="text-gray-500">
-                        Artistic event.
+                  <div className="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:pt-5">
+                    <label
+                      htmlFor="event_venue"
+                      className="block text-sm font-medium leading-5 text-gray-700 sm:mt-px sm:pt-2">
+                      Venue/location
+                    </label>
+                    <div className="mt-1 sm:mt-0 sm:col-span-2">
+                      <div className="flex max-w-lg rounded-md shadow-sm">
+                        <input
+                          name="event_venue"
+                          id="event_venue"
+                          ref={register({required: true})}
+                          className="flex-1 block w-full min-w-0 transition duration-150 ease-in-out rounded-none form-input rounded-r-md sm:text-sm sm:leading-5"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 sm:mt-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:border-t sm:border-gray-200 sm:pt-5">
+                    <label
+                      htmlFor="event_description"
+                      className="block text-sm font-medium leading-5 text-gray-700 sm:mt-px sm:pt-2">
+                      Description
+                    </label>
+                    <div className="mt-1 sm:mt-0 sm:col-span-2">
+                      <div className="flex max-w-lg rounded-md shadow-sm">
+                        <textarea
+                          name="event_description"
+                          id="event_description"
+                          rows={3}
+                          ref={register()}
+                          className="block w-full transition duration-150 ease-in-out form-textarea sm:text-sm sm:leading-5"></textarea>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-500">
+                        Write a few sentences about your event.
                       </p>
                     </div>
                   </div>
 
-                  <div className="relative flex items-start">
-                    <div className="absolute flex items-center h-5">
-                      <input
-                        id="privacy_private-to-project"
-                        aria-describedby="privacy_private-to-project_description"
-                        type="radio"
-                        name="privacy"
-                        className="w-4 h-4 transition duration-150 ease-in-out text-red form-radio"
-                      />
-                    </div>
-                    <div className="text-sm leading-5 pl-7">
+                  <label
+                    htmlFor="about"
+                    className="block mb-4 text-sm font-medium leading-5 text-gray-700 sm:mt-px sm:pt-4">
+                    Date and time
+                  </label>
+                  <Datetime
+                    value={date}
+                    onChange={value => setDate(value)}
+                    input={false}
+                  />
+
+                  <div className="mt-8 sm:col-span-6">
                       <label
-                        htmlFor="privacy_private-to-project"
-                        className="font-medium text-gray-900">
-                        Direct action.
+                        htmlFor="street_address"
+                        className="block text-sm font-medium leading-5 text-gray-700">
+                        Street address
                       </label>
-                      <p
-                        id="privacy_private-to-project_description"
-                        className="text-gray-500">
-                        March, rally, etc.
-                      </p>
+                      <div className="mt-1 rounded-md shadow-sm">
+                        <input
+                          name="event_street_address"
+                          id="event_street_address"
+                          ref={register()}
+                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 sm:col-span-2">
+                      <label
+                        htmlFor="city"
+                        className="block text-sm font-medium leading-5 text-gray-700">
+                        City
+                      </label>
+                      <div className="mt-1 rounded-md shadow-sm">
+                        <input
+                          name="event_city"
+                          id="event_city"
+                          ref={register()}
+                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 sm:col-span-2">
+                      <label
+                        htmlFor="state"
+                        className="block text-sm font-medium leading-5 text-gray-700">
+                        State / Province
+                      </label>
+                      <div className="mt-1 rounded-md shadow-sm">
+                        <input
+                          name="event_state"
+                          id="event_state"
+                          ref={register()}
+                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 sm:col-span-2">
+                      <label
+                        htmlFor="zip"
+                        className="block text-sm font-medium leading-5 text-gray-700">
+                        ZIP / Postal
+                      </label>
+                      <div className="mt-1 rounded-md shadow-sm">
+                        <input
+                          name="event_zip"
+                          id="event_zip"
+                          ref={register()}
+                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                        />
+                      </div>
+                    </div>
+                </div>
+
+                <div className="pt-8 mt-8">
+                  <div>
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">
+                      Coordinator
+                    </h3>
+                    <p className="mt-1 text-sm leading-5 text-gray-500">
+                      Who is the point of contact for this event?
+                    </p>
+                  </div>
+                  <div className="grid mt-6 mb-8 gap-y-6 gap-x-4">
+                    <div className="sm:col-span-3">
+                      <label
+                        htmlFor="first_name"
+                        className="block text-sm font-medium leading-5 text-gray-700">
+                        First name
+                      </label>
+                      <div className="mt-1 rounded-md shadow-sm">
+                        <input
+                          name="first_name"
+                          ref={register({required: true})}
+                          id="first_name"
+                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <label
+                        htmlFor="last_name"
+                        className="block text-sm font-medium leading-5 text-gray-700">
+                        Last name
+                      </label>
+                      <div className="mt-1 rounded-md shadow-sm">
+                        <input
+                          name="last_name"
+                          ref={register({required: true})}
+                          id="last_name"
+                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-6">
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-medium leading-5 text-gray-700">
+                        Email address
+                      </label>
+                      <div className="space-y-1">
+                        <div className="relative rounded-md shadow-sm">
+                          <input
+                            name="email"
+                            ref={register({required: true})}
+                            id="email"
+                            type="email"
+                            className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col w-full">
+                    <label
+                      className="block mb-8 text-sm font-medium leading-5 text-gray-700">
+                      Is it okay to publish your name and email so people can get in touch with you as the coordinator?
+                    </label>
+
+                    <div className="flex-row w-full">
+
+                      <span role="checkbox" tabIndex={0} aria-checked={publicContact ? true : false} onClick={() => setPublicContact(!publicContact)} className={`${publicContact ? `bg-red` : `bg-transparent`} relative inline-flex flex-shrink-0 h-6 transition-colors duration-200 ease-in-out border-2 border-transparent rounded-full cursor-pointer w-11 focus:outline-none focus:shadow-outline`}>
+                        <span aria-hidden="true" className={`${publicContact ? 'translate-x-5' : 'translate-x-0'} relative inline-block w-5 h-5 transition duration-200 ease-in-out transform translate-x-0 bg-white rounded-full shadow`}>
+                          <span className={`${publicContact ? 'opacity-0 ease-out duration-100' : 'opacity-100 ease-in duration-200'} absolute inset-0 flex items-center justify-center w-full h-full transition-opacity`}>
+                            <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 12 12">
+                              <path d="M4 8l2-2m0 0l2-2M6 6L4 4m2 2l2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                          <span className={`${publicContact ? 'opacity-100 ease-in duration-200' : 'opacity-0 ease-out duration-100'} absolute inset-0 flex items-center justify-center w-full h-full transition-opacity`}>
+                            <svg className="w-3 h-3 text-red" fill="currentColor" viewBox="0 0 12 12">
+                              <path d="M3.707 5.293a1 1 0 00-1.414 1.414l1.414-1.414zM5 8l-.707.707a1 1 0 001.414 0L5 8zm4.707-3.293a1 1 0 00-1.414-1.414l1.414 1.414zm-7.414 2l2 2 1.414-1.414-2-2-1.414 1.414zm3.414 2l4-4-1.414-1.414-4 4 1.414 1.414z" />
+                            </svg>
+                          </span>
+                        </span>
+                      </span>
+
+                      <span className="relative mb-2 ml-8 bottom-1">
+                        {publicContact ? 'Sure!' : 'No, thanks.'}
+                      </span>
                     </div>
                   </div>
                 </div>
-              </fieldset>
-            </div>
-
-            <div className="pt-4 pb-6 space-y-4">
-              <div className="flex text-sm leading-5">
-                <a
-                  href="#"
-                  className="inline-flex items-center space-x-2 text-gray-500 transition duration-150 ease-in-out group hover:text-gray-900">
-                  <svg
-                    className="w-5 h-5 text-gray-400 transition duration-150 ease-in-out group-hover:text-gray-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor">
-                    <path
-                      fill-rule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <span>Learn more about sharing</span>
-                </a>
               </div>
             </div>
-          </div>
+            <div className="flex justify-end flex-shrink-0 px-4 py-4 space-x-4">
+              <span className="inline-flex rounded-md shadow-sm">
+                <button
+                  onClick={toggle}
+                  type="button"
+                  className="px-4 py-2 text-sm font-medium leading-5 text-gray-700 transition duration-150 ease-in-out border border-gray-300 rounded-md hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:bg-gray-50 active:text-gray-800">
+                  Cancel
+                </button>
+              </span>
+              <span className="inline-flex rounded-md shadow-sm">
+                <button
+                  type="submit"
+                  className="inline-flex justify-center px-4 py-2 text-sm font-medium leading-5 text-white transition duration-150 ease-in-out border border-transparent rounded-md bg-red hover:bg-red-darker focus:outline-none focus:border-red focus:shadow-outline-indigo active:bg-red">
+                  Save
+                </button>
+              </span>
+            </div>
+          </form>
         </div>
       </div>
-
-      <div className="flex justify-end flex-shrink-0 px-4 py-4 space-x-4">
-        <span className="inline-flex rounded-md shadow-sm">
-          <button
-            type="button"
-            className="px-4 py-2 text-sm font-medium leading-5 text-gray-700 transition duration-150 ease-in-out border border-gray-300 rounded-md hover:text-gray-500 focus:outline-none focus:border-blue-300 focus:shadow-outline-blue active:bg-gray-50 active:text-gray-800">
-            Cancel
-          </button>
-        </span>
-        <span className="inline-flex rounded-md shadow-sm">
-          <button
-            type="submit"
-            className="inline-flex justify-center px-4 py-2 text-sm font-medium leading-5 text-white transition duration-150 ease-in-out border border-transparent rounded-md bg-red hover:bg-red-darker focus:outline-none focus:border-red focus:shadow-outline-indigo active:bg-red">
-            Save
-          </button>
-        </span>
-      </div>
     </div>
-  </div>
-)
+  )
+}
 
 const Add = props => {
   const fill = props.fill || 'currentColor'
@@ -240,7 +407,7 @@ const Add = props => {
         type="button"
         className="inline-flex items-center px-4 py-2 text-base font-medium leading-6 text-white transition duration-150 ease-in-out border border-transparent rounded-md bg-red hover:bg-red-darker focus:outline-none focus:border-red focus:shadow-outline-red-darker active:bg-red-darker">
         <svg
-          className="relative transition-all duration-300 cursor-pointer hover:transform hover:scale-150"
+          className="relative mr-3 transition-all duration-300 cursor-pointer hover:transform hover:scale-150"
           height={'2em'}
           width={'2em'}
           viewBox="0 0 64 64">
@@ -252,6 +419,7 @@ const Add = props => {
             />
           </g>
         </svg>
+        Add event
       </button>
     </span>
   )
