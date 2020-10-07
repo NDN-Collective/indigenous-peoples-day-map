@@ -6,6 +6,9 @@ import ReactMapboxGl, {Marker, Popup} from 'lib'
 import Mark from './Marker'
 import Tooltip from './Tooltip'
 import Form from './../Form'
+import Overlay from './Overlay'
+import Slide from './Slide'
+import Card from './Card'
 
 enum INITIAL {
   lng = -103.1144,
@@ -43,16 +46,19 @@ const Map = ReactMapboxGl({
 
 const Mapbox: FunctionComponent<any> = () => {
   const events = useEvents()
+
   const [zoom, setZoom] = useState(INITIAL.zoom)
+
   const [event, setEvent] = useState(null)
   const [create, setCreate] = useState(null)
+  const [info, setInfo] = useState(false)
 
   const [center, setCenter] = useState<[number, number]>([
     INITIAL.lng,
     INITIAL.lat,
   ])
 
-  const click = (map: any, evt: any) => {
+  /* const click = (map: any, evt: any) => {
     const coordinates = Object.values(evt.lngLat)
     setCenter(coordinates as [number, number])
     event && setEvent(null)
@@ -60,22 +66,26 @@ const Mapbox: FunctionComponent<any> = () => {
     setCreate({
       center: coordinates,
     })
-  }
+  } */
 
   const eventClick = id => {
     setCreate(null)
     setEvent(events[id])
   }
 
+  const showInfo = () => {
+    setInfo(info ? false : true)
+  }
+
   return (
     <>
-      {/* <Overlay lat={center[1]} lng={center[0]} zoom={zoom} /> */}
+      <Overlay events={events} event={event} />
+      <Slide />
       <Map
         center={center}
         movingMethod="flyTo"
         style="mapbox://styles/kellymears/ckfwxtc3y05m119pku6ud8zbn"
         containerStyle={mapStyle}
-        onClick={click}
         pitch={[60]}
         bearing={[-60]}>
         <>
@@ -98,9 +108,8 @@ const Mapbox: FunctionComponent<any> = () => {
               offset={[0, -20]}
               coordinates={[event.longitude, event.latitude]}>
               <Tooltip
-                name={event.name}
-                description={event.description}
-              />
+                showInfo={showInfo}
+                event={event} />
             </Popup>
           )}
 
@@ -117,6 +126,8 @@ const Mapbox: FunctionComponent<any> = () => {
               />
             </Popup>
           )}
+
+          {info && <Card setInfo={setInfo} event={event} />}
         </>
       </Map>
     </>

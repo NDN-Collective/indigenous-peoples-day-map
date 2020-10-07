@@ -44,7 +44,7 @@ exports.handler = async (event, context) => {
 
   await doc.loadInfo() // loads document properties and worksheets. required.
 
-  const sheet = doc.sheetsByIndex[0] // you may want to customize this if you have more than 1 sheet
+  const sheet = doc.sheetsByIndex[1] // you may want to customize this if you have more than 1 sheet
 
   const path = event.path.replace(/\.netlify\/functions\/[^/]+/, '')
 
