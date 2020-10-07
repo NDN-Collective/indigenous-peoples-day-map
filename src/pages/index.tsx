@@ -13,10 +13,22 @@ function useEvents() {
           '/.netlify/functions/google-sheet-fn/',
         )
 
+        console.log(data)
         setStatus(status)
-        setEvents(data.filter(data => data.published))
+        setEvents(data.filter(data => {
+          data.event_latitude = parseFloat(data.event_latitude)
+          data.event_longitude = parseFloat(data.event_longitude)
+
+          return data.published &&
+            typeof data.event_latitude == 'number' &&
+            typeof data.event_longitude == 'number' &&
+            data.event_latitude !== 0 &&
+            data.event_longitude !== 0
+        }))
       })()
   }, [])
+
+  console.log(events)
 
   return events
 }
