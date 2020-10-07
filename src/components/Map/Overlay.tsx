@@ -32,6 +32,6 @@ const Overlay = ({event}) =>
       </div>
     </div>
   </div>
-  ) : []
+  ) : <></>
 
   export {Overlay as default}

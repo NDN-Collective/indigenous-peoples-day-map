@@ -7,6 +7,8 @@ import Overlay from './Overlay'
 import Slide from './Slide'
 import Card from './Card'
 
+let MapboxGeocoder;
+
 enum INITIAL {
   lng = -103.1144,
   lat = 44.0039,
