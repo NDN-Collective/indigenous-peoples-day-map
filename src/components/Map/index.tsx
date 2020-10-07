@@ -7,7 +7,11 @@ import Overlay from './Overlay'
 import Slide from './Slide'
 import Card from './Card'
 
-let MapboxGeocoder;
+declare global {
+  interface Window {
+    MapboxGeocoder: any
+  }
+}
 
 enum INITIAL {
   lng = -103.1144,
@@ -43,7 +47,7 @@ const Mapbox: FunctionComponent<any> = ({events}) => {
 
   const init = map => {
     map.addControl(
-      new MapboxGeocoder({
+      new window.MapboxGeocoder({
         accessToken,
         mapboxgl,
         autocomplete: true,
