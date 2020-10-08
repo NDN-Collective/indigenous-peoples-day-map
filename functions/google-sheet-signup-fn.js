@@ -1,7 +1,7 @@
-const {join} = require('path')
+const { join } = require('path')
 
 if (!process.env.NETLIFY) {
-  require('dotenv').config({path: join(__dirname, '.env')})
+  require('dotenv').config({ path: join(__dirname, '.env') })
 }
 
 // required env vars
@@ -12,7 +12,7 @@ if (!process.env.GOOGLE_PRIVATE_KEY)
   throw new Error('no GOOGLE_PRIVATE_KEY env var set')
 
 if (!process.env.GOOGLE_SHEET_ID)
-  // spreadsheet key is the long id in the sheets URL
+// spreadsheet key is the long id in the sheets URL
   throw new Error('no GOOGLE_SHEET_ID env var set')
 
 /*
@@ -27,9 +27,9 @@ if (!process.env.GOOGLE_SHEET_ID)
  * the library also allows working just with cells,
  * but this example only shows CRUD on rows since thats more common
  */
-const {GoogleSpreadsheet} = require('google-spreadsheet')
+const { GoogleSpreadsheet } = require('google-spreadsheet')
 
-exports.handler = async (event, context) => {
+exports.handler = async(event, context) => {
   const UserIP =
     event.headers['x-nf-client-connection-ip'] || '6.9.6.9' // not required, i just feel like using this info
   const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID)
@@ -77,14 +77,14 @@ exports.handler = async (event, context) => {
             'too many segments in GET request - you should only call somehting like /.netlify/functions/google-spreadsheet-fn/123456 not /.netlify/functions/google-spreadsheet-fn/123456/789/101112',
           )
         }
-      /* POST /.netlify/functions/google-spreadsheet-fn */
+        /* POST /.netlify/functions/google-spreadsheet-fn */
       case 'POST':
         /* parse the string body into a useable JS object */
         const data = JSON.parse(event.body)
         data.UserIP = UserIP
-        // console.log('`POST` invoked', data);
+          // console.log('`POST` invoked', data);
         const addedRow = await sheet.addRow(data)
-        // console.log({ addedRow });
+          // console.log({ addedRow });
         return {
           statusCode: 200,
           body: JSON.stringify({
@@ -94,7 +94,7 @@ exports.handler = async (event, context) => {
             rowNumber: addedRow._rowNumber - 1, // minus the header row
           }),
         }
-      /* PUT /.netlify/functions/google-spreadsheet-fn/123456 */
+        /* PUT /.netlify/functions/google-spreadsheet-fn/123456 */
       case 'PUT':
         /* PUT /.netlify/functions/google-spreadsheet-fn */
         if (segments.length === 0) {
@@ -118,17 +118,16 @@ exports.handler = async (event, context) => {
           await selectedRow.save() // save updates
           return {
             statusCode: 200,
-            body: JSON.stringify({message: 'PUT is a success!'}),
+            body: JSON.stringify({ message: 'PUT is a success!' }),
             // body: JSON.stringify(rows[rowId]) // just sends less data over the wire
           }
         } else {
           return {
             statusCode: 500,
-            body:
-              'too many segments in PUT request - you should only call somehting like /.netlify/functions/google-spreadsheet-fn/123456 not /.netlify/functions/google-spreadsheet-fn/123456/789/101112',
+            body: 'too many segments in PUT request - you should only call somehting like /.netlify/functions/google-spreadsheet-fn/123456 not /.netlify/functions/google-spreadsheet-fn/123456/789/101112',
           }
         }
-      /* DELETE /.netlify/functions/google-spreadsheet-fn/123456 */
+        /* DELETE /.netlify/functions/google-spreadsheet-fn/123456 */
       case 'DELETE':
         //
         // warning:
@@ -137,9 +136,9 @@ exports.handler = async (event, context) => {
 
         if (segments.length === 1) {
           const rows = await sheet.getRows() // can pass in { limit, offset }
-          // // we dont actually use this in the demo but you might
-          // const rowId = segments[0];
-          // await rows[rowId].delete(); // delete a row
+            // // we dont actually use this in the demo but you might
+            // const rowId = segments[0];
+            // await rows[rowId].delete(); // delete a row
 
           // do this
           if (rows.length > 1) {
@@ -147,14 +146,13 @@ exports.handler = async (event, context) => {
             await lastRow.delete() // delete a row
             return {
               statusCode: 200,
-              body: JSON.stringify({message: 'DELETE is a success!'}),
+              body: JSON.stringify({ message: 'DELETE is a success!' }),
             }
           } else {
             return {
               statusCode: 200,
               body: JSON.stringify({
-                message:
-                  'no rows left to delete! (first row is sacred)',
+                message: 'no rows left to delete! (first row is sacred)',
               }),
             }
           }
@@ -162,17 +160,15 @@ exports.handler = async (event, context) => {
           return {
             statusCode: 500,
             body: JSON.stringify({
-              message:
-                'invalid segments in DELETE request, must be /.netlify/functions/google-spreadsheet-fn/123456',
+              message: 'invalid segments in DELETE request, must be /.netlify/functions/google-spreadsheet-fn/123456',
             }),
           }
         }
-      /* Fallthrough case */
+        /* Fallthrough case */
       default:
         return {
           statusCode: 500,
-          body:
-            'unrecognized HTTP Method, must be one of GET/POST/PUT/DELETE',
+          body: 'unrecognized HTTP Method, must be one of GET/POST/PUT/DELETE',
         }
     }
   } catch (err) {

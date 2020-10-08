@@ -13,18 +13,25 @@ function useEvents() {
           '/.netlify/functions/google-sheet-fn/',
         )
 
-        console.log(data)
         setStatus(status)
-        setEvents(data.filter(data => {
-          data.event_latitude = parseFloat(data.event_latitude)
-          data.event_longitude = parseFloat(data.event_longitude)
 
-          return data.published &&
-            typeof data.event_latitude == 'number' &&
-            typeof data.event_longitude == 'number' &&
-            data.event_latitude !== 0 &&
-            data.event_longitude !== 0
-        }))
+        setEvents(
+          data.filter(data => {
+            data.event_latitude =
+              data.event_latitude && parseFloat(data.event_latitude)
+            data.event_longitude =
+              data.event_longitude && parseFloat(data.event_longitude)
+
+            return (
+              data.published &&
+              data.id &&
+              typeof data.event_latitude == 'number' &&
+              typeof data.event_longitude == 'number' &&
+              data.event_latitude !== 0 &&
+              data.event_longitude !== 0
+            )
+          }),
+        )
       })()
   }, [])
 
@@ -33,9 +40,7 @@ function useEvents() {
   return events
 }
 
-const Loading: FunctionComponent = () => (
-  <span>loading</span>
-)
+const Loading: FunctionComponent = () => <span>loading</span>
 
 const Index: FunctionComponent = () => {
   const events = useEvents()

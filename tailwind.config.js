@@ -8,9 +8,7 @@ module.exports = {
     removeDeprecatedGapUtilities: true,
     purgeLayersByDefault: true,
   },
-  purge: [
-    './**/*.tsx',
-  ],
+  purge: ['./**/*.tsx'],
   theme: {
     extend: {
       fontFamily: {
@@ -33,11 +31,9 @@ module.exports = {
       },
       height: {
         ...theme.height,
-        '128': '30rem',
+        128: '30rem',
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/ui'),
-  ]
+  plugins: [require('@tailwindcss/ui')],
 }

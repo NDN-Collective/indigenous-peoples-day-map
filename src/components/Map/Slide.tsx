@@ -3,8 +3,9 @@ import React, {useState} from 'react'
 import axios from 'axios'
 import {useForm} from 'react-hook-form'
 import * as Moment from 'moment'
+import {v4} from 'uuid'
 
-const Slide = ({events}) => {
+const Slide = ({events, setModal, setModalCopy}) => {
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -13,19 +14,40 @@ const Slide = ({events}) => {
         className="absolute left-0 z-10 p-2 button">
         <Add />
       </div>
-      <Menu events={events} toggle={() => setOpen(!open)} open={open} />
+      <Menu
+        setModal={setModal}
+        setModalCopy={setModalCopy}
+        events={events}
+        toggle={() => setOpen(!open)}
+        open={open}
+        setOpen={setOpen}
+      />
     </>
   )
 }
 
-const Menu = ({toggle, open, events}) => (
+const Menu = ({
+  toggle,
+  open,
+  events,
+  setModal,
+  setOpen,
+  setModalCopy,
+}) => (
   <div
     className={`fixed inset-0 z-10 overflow-hidden transform transition ease-in-out duration-500 sm:duration-700 ${
       open ? 'translate-x-0' : 'translate-x-full'
     }`}>
     <div className="absolute inset-0 overflow-hidden">
       <section className="absolute inset-y-0 right-0 flex max-w-full lg:pl-16">
-        <Panel events={events} toggle={toggle} open={open} />
+        <Panel
+          setOpen={setOpen}
+          setModal={setModal}
+          setModalCopy={setModalCopy}
+          events={events}
+          toggle={toggle}
+          open={open}
+        />
       </section>
     </div>
   </div>
@@ -72,7 +94,14 @@ const Header = ({toggle}) => (
 const accessToken =
   'pk.eyJ1Ijoia2VsbHltZWFycyIsImEiOiJDRWJGSnY0In0.chvkNAOsFpqhjbjcOIBZOA'
 
-const Panel = ({toggle, open, events}) => {
+const Panel = ({
+  toggle,
+  setOpen,
+  open,
+  events,
+  setModal,
+  setModalCopy,
+}) => {
   const [date, setDate] = useState<Moment.Moment | string>('')
   const [latitude, setLatitude] = useState(0)
   const [longitude, setLongitude] = useState(0)
@@ -81,50 +110,64 @@ const Panel = ({toggle, open, events}) => {
   const {register, handleSubmit, watch, errors} = useForm()
 
   const onSubmit = async data => {
-
     await axios({
       method: 'get',
-      url: `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(data.event_city)},${encodeURIComponent(data.event_street_address)},${encodeURIComponent(data.event_state)},${encodeURIComponent(data.event_zip)},${encodeURIComponent('United States')}.json?types=address&access_token=${accessToken}`,
-    }).then(res => {
-      console.log(res)
-      const primary = res?.data?.features?.[0]
-      console.log(primary)
-
-      if (primary?.center) {
-        setLongitude(primary.center[0])
-        setLatitude(primary.center[1])
-      }
-    }).catch(err => console.error(err))
-
-    await axios({
-      method: 'post',
-      url: `/.netlify/functions/google-sheet-fn`,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: JSON.stringify({
-        email: data.email ?? '',
-        first_name: data.first_name ?? '',
-        last_name: data.last_name ?? '',
-        public_contact: data.publicContact ?? false,
-        event_street: data.event_street_address ?? '',
-        event_venue: data.event_venue ?? '',
-        event_name: data.event_name ?? '',
-        event_description: data.event_description ?? '',
-        event_city: data.event_city ?? '',
-        event_state: data.event_state ?? '',
-        event_zip: data.event_zip ?? '',
-        event_date: date,
-        event_longitude: longitude,
-        event_latitude: latitude,
-      }),
+      url: `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+        data.event_city,
+      )},${encodeURIComponent(
+        data.event_street_address,
+      )},${encodeURIComponent(data.event_state)},${encodeURIComponent(
+        data.event_zip,
+      )},${encodeURIComponent(
+        'United States',
+      )}.json?types=address&access_token=${accessToken}`,
     })
       .then(res => {
-        if (res.status == 200) {
-          console.log('woo')
+        const primary = res?.data?.features?.[0]
+
+        if (primary?.center) {
+          setLongitude(primary.center[0])
+          setLatitude(primary.center[1])
         }
+
+        axios({
+          method: 'post',
+          url: `/.netlify/functions/google-sheet-fn`,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: JSON.stringify({
+            id: v4(),
+            email: data.email ?? '',
+            first_name: data.first_name ?? '',
+            last_name: data.last_name ?? '',
+            public_contact: publicContact ? 'TRUE' : 'FALSE',
+            event_street: data.event_street_address ?? '',
+            event_venue: data.event_venue ?? '',
+            event_name: data.event_name ?? '',
+            event_description: data.event_description ?? '',
+            event_city: data.event_city ?? '',
+            event_state: data.event_state ?? '',
+            event_zip: data.event_zip ?? '',
+            event_date: date,
+            event_longitude: longitude,
+            event_latitude: latitude,
+          }),
+        })
+          .then(res => {
+            if (res.status == 200) {
+              console.log('woo')
+            }
+
+            setOpen(false)
+            setModal(true)
+            setModalCopy(
+              `Thank you for submitting your event. Organizers will reach out if there are any questions. Otherwise, we'll let you know when the event is approved.`,
+            )
+          })
+          .catch(err => console.log(err))
       })
-      .catch(err => console.log(err))
+      .catch(err => console.error(err))
   }
 
   return (
@@ -216,68 +259,68 @@ const Panel = ({toggle, open, events}) => {
                   />
 
                   <div className="mt-8 sm:col-span-6">
-                      <label
-                        htmlFor="street_address"
-                        className="block text-sm font-medium leading-5 text-gray-700">
-                        Street address
-                      </label>
-                      <div className="mt-1 rounded-md shadow-sm">
-                        <input
-                          name="event_street_address"
-                          id="event_street_address"
-                          ref={register()}
-                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
-                        />
-                      </div>
+                    <label
+                      htmlFor="street_address"
+                      className="block text-sm font-medium leading-5 text-gray-700">
+                      Street address
+                    </label>
+                    <div className="mt-1 rounded-md shadow-sm">
+                      <input
+                        name="event_street_address"
+                        id="event_street_address"
+                        ref={register()}
+                        className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                      />
                     </div>
+                  </div>
 
-                    <div className="mt-4 sm:col-span-2">
-                      <label
-                        htmlFor="city"
-                        className="block text-sm font-medium leading-5 text-gray-700">
-                        City
-                      </label>
-                      <div className="mt-1 rounded-md shadow-sm">
-                        <input
-                          name="event_city"
-                          id="event_city"
-                          ref={register()}
-                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
-                        />
-                      </div>
+                  <div className="mt-4 sm:col-span-2">
+                    <label
+                      htmlFor="city"
+                      className="block text-sm font-medium leading-5 text-gray-700">
+                      City
+                    </label>
+                    <div className="mt-1 rounded-md shadow-sm">
+                      <input
+                        name="event_city"
+                        id="event_city"
+                        ref={register()}
+                        className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                      />
                     </div>
+                  </div>
 
-                    <div className="mt-4 sm:col-span-2">
-                      <label
-                        htmlFor="state"
-                        className="block text-sm font-medium leading-5 text-gray-700">
-                        State / Province
-                      </label>
-                      <div className="mt-1 rounded-md shadow-sm">
-                        <input
-                          name="event_state"
-                          id="event_state"
-                          ref={register()}
-                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
-                        />
-                      </div>
+                  <div className="mt-4 sm:col-span-2">
+                    <label
+                      htmlFor="state"
+                      className="block text-sm font-medium leading-5 text-gray-700">
+                      State / Province
+                    </label>
+                    <div className="mt-1 rounded-md shadow-sm">
+                      <input
+                        name="event_state"
+                        id="event_state"
+                        ref={register()}
+                        className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                      />
                     </div>
+                  </div>
 
-                    <div className="mt-4 sm:col-span-2">
-                      <label
-                        htmlFor="zip"
-                        className="block text-sm font-medium leading-5 text-gray-700">
-                        ZIP / Postal
-                      </label>
-                      <div className="mt-1 rounded-md shadow-sm">
-                        <input
-                          name="event_zip"
-                          id="event_zip"
-                          ref={register()}
-                          className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
-                        />
-                      </div>
+                  <div className="mt-4 sm:col-span-2">
+                    <label
+                      htmlFor="zip"
+                      className="block text-sm font-medium leading-5 text-gray-700">
+                      ZIP / Postal
+                    </label>
+                    <div className="mt-1 rounded-md shadow-sm">
+                      <input
+                        name="event_zip"
+                        id="event_zip"
+                        ref={register()}
+                        className="block w-full transition duration-150 ease-in-out form-input sm:text-sm sm:leading-5"
+                      />
                     </div>
+                  </div>
                 </div>
 
                 <div className="pt-8 mt-8">
@@ -342,22 +385,59 @@ const Panel = ({toggle, open, events}) => {
                     </div>
                   </div>
                   <div className="flex flex-col w-full">
-                    <label
-                      className="block mb-8 text-sm font-medium leading-5 text-gray-700">
-                      Is it okay to publish your name and email so people can get in touch with you as the coordinator?
+                    <label className="block mb-8 text-sm font-medium leading-5 text-gray-700">
+                      Is it okay to publish your name and email so
+                      people can get in touch with you as the
+                      coordinator?
                     </label>
 
                     <div className="flex-row w-full">
-
-                      <span role="checkbox" tabIndex={0} aria-checked={publicContact ? true : false} onClick={() => setPublicContact(!publicContact)} className={`${publicContact ? `bg-red` : `bg-transparent`} relative inline-flex flex-shrink-0 h-6 transition-colors duration-200 ease-in-out border-2 border-transparent rounded-full cursor-pointer w-11 focus:outline-none focus:shadow-outline`}>
-                        <span aria-hidden="true" className={`${publicContact ? 'translate-x-5' : 'translate-x-0'} relative inline-block w-5 h-5 transition duration-200 ease-in-out transform translate-x-0 bg-white rounded-full shadow`}>
-                          <span className={`${publicContact ? 'opacity-0 ease-out duration-100' : 'opacity-100 ease-in duration-200'} absolute inset-0 flex items-center justify-center w-full h-full transition-opacity`}>
-                            <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 12 12">
-                              <path d="M4 8l2-2m0 0l2-2M6 6L4 4m2 2l2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <span
+                        role="checkbox"
+                        tabIndex={0}
+                        aria-checked={publicContact ? true : false}
+                        onClick={() =>
+                          setPublicContact(!publicContact)
+                        }
+                        className={`${
+                          publicContact ? `bg-red` : `bg-transparent`
+                        } relative inline-flex flex-shrink-0 h-6 transition-colors duration-200 ease-in-out border-2 border-transparent rounded-full cursor-pointer w-11 focus:outline-none focus:shadow-outline`}>
+                        <span
+                          aria-hidden="true"
+                          className={`${
+                            publicContact
+                              ? 'translate-x-5'
+                              : 'translate-x-0'
+                          } relative inline-block w-5 h-5 transition duration-200 ease-in-out transform translate-x-0 bg-white rounded-full shadow`}>
+                          <span
+                            className={`${
+                              publicContact
+                                ? 'opacity-0 ease-out duration-100'
+                                : 'opacity-100 ease-in duration-200'
+                            } absolute inset-0 flex items-center justify-center w-full h-full transition-opacity`}>
+                            <svg
+                              className="w-3 h-3 text-gray-400"
+                              fill="none"
+                              viewBox="0 0 12 12">
+                              <path
+                                d="M4 8l2-2m0 0l2-2M6 6L4 4m2 2l2 2"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
                             </svg>
                           </span>
-                          <span className={`${publicContact ? 'opacity-100 ease-in duration-200' : 'opacity-0 ease-out duration-100'} absolute inset-0 flex items-center justify-center w-full h-full transition-opacity`}>
-                            <svg className="w-3 h-3 text-red" fill="currentColor" viewBox="0 0 12 12">
+                          <span
+                            className={`${
+                              publicContact
+                                ? 'opacity-100 ease-in duration-200'
+                                : 'opacity-0 ease-out duration-100'
+                            } absolute inset-0 flex items-center justify-center w-full h-full transition-opacity`}>
+                            <svg
+                              className="w-3 h-3 text-red"
+                              fill="currentColor"
+                              viewBox="0 0 12 12">
                               <path d="M3.707 5.293a1 1 0 00-1.414 1.414l1.414-1.414zM5 8l-.707.707a1 1 0 001.414 0L5 8zm4.707-3.293a1 1 0 00-1.414-1.414l1.414 1.414zm-7.414 2l2 2 1.414-1.414-2-2-1.414 1.414zm3.414 2l4-4-1.414-1.414-4 4 1.414 1.414z" />
                             </svg>
                           </span>

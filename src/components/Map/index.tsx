@@ -1,11 +1,11 @@
-import React, {FunctionComponent, useState} from 'react'
+import React, {FunctionComponent, useState, Fragment} from 'react'
 import ReactMapboxGl, {Popup, Layer, Feature} from 'lib'
 import mapboxgl from 'mapbox-gl'
-import Tooltip from './Tooltip'
-import Form from './../Form'
+import Tip from '../Tip'
 import Overlay from './Overlay'
 import Slide from './Slide'
 import Card from './Card'
+import Modal from '../Modal'
 
 declare global {
   interface Window {
@@ -38,7 +38,8 @@ const Mapbox: FunctionComponent<any> = ({events}) => {
   const [event, setEvent] = useState(null)
   const [create, setCreate] = useState(null)
   const [info, setInfo] = useState(false)
-  const [place, setPlace] = useState(false)
+  const [modal, setModal] = useState(false)
+  const [modalCopy, setModalCopy] = useState('')
 
   const [center, setCenter] = useState<[number, number]>([
     INITIAL.lng,
@@ -56,28 +57,38 @@ const Mapbox: FunctionComponent<any> = ({events}) => {
           latitude: 44.0039,
         },
         limit: 20,
-        bbox: [-103.38242766899484,43.93527325315776,-102.98740537196197,44.21292531719186],
+        bbox: [
+          -103.38242766899484,
+          43.93527325315776,
+          -102.98740537196197,
+          44.21292531719186,
+        ],
         localGeocoder: function (query) {
           return events
-            .map((props, id) => ({
+            .map(event => ({
               type: 'Feature',
               properties: {
-                title: props?.event_name ?? '',
-                description: props?.event_description ?? '',
+                title: event?.event_name ?? '',
+                description: event?.event_description ?? '',
               },
               geometry: {
-                coordinates: [props.event_longitude, props.event_latitude],
+                coordinates: [
+                  event?.event_longitude,
+                  event?.event_latitude,
+                ],
                 type: 'Point',
               },
             }))
             .filter(feature => {
-              return feature.properties.title
-                .toLowerCase()
-                .search(query.toLowerCase()) !== -1
+              return (
+                feature.properties.title
+                  .toLowerCase()
+                  .search(query.toLowerCase()) !== -1
+              )
             })
             .map(feature => ({
               ...event,
-              'place_name': feature.properties.title,
+              place_name: feature.properties.title,
             }))
         },
       }),
@@ -153,19 +164,34 @@ const Mapbox: FunctionComponent<any> = ({events}) => {
     return map
   }
 
-  const eventClick = id => {
+  const eventClick = event => {
     setCreate(null)
-    setEvent(events[id])
+    setEvent(event)
   }
 
   const showInfo = () => {
     setInfo(info ? false : true)
   }
 
+  const onCloseModal = () => {
+    setInfo(false)
+    setModal(false)
+  }
+
+  const onCloseSlide = () => {
+    setEvent(false)
+    setInfo(false)
+    setModal(true)
+  }
+
   return (
     <>
-      <Overlay event={event} />
-      <Slide events={events} />
+      <Overlay event={event} setInfo={setInfo} />
+      <Slide
+        setModal={onCloseSlide}
+        setModalCopy={setModalCopy}
+        events={events}
+      />
       <Map
         onStyleLoad={init}
         center={center}
@@ -179,18 +205,24 @@ const Mapbox: FunctionComponent<any> = ({events}) => {
               type="symbol"
               id="marker"
               layout={{'icon-image': 'pulsing-dot'}}>
-              {events.map(
-                (event, id) =>
-                  event.event_latitude &&
-                  event.event_longitude && (
+              {events?.map(
+                event =>
+                  event?.event_latitude &&
+                  event?.event_longitude && (
                     <Feature
-                      key={id}
+                      key={`feature-${event.id}`}
                       properties={{
                         place_name: `✊🏾  ${event.event_name}`,
-                        center: [event.event_longitude, event.event_latitude],
+                        center: [
+                          event.event_longitude,
+                          event.event_latitude,
+                        ],
                       }}
-                      coordinates={[event.event_longitude, event.event_latitude]}
-                      onClick={() => eventClick(id)}
+                      coordinates={[
+                        event.event_longitude,
+                        event.event_latitude,
+                      ]}
+                      onClick={() => eventClick(event)}
                     />
                   ),
               )}
@@ -198,30 +230,28 @@ const Mapbox: FunctionComponent<any> = ({events}) => {
           )}
 
           {event && (
-            <Popup
-              className="event-popup"
-              key={event.id}
+            <Tip
+              key={`tip-${event.id}`}
               offset={[0, -20]}
-              coordinates={[event.event_longitude, event.event_latitude]}>
-              <Tooltip showInfo={showInfo} event={event} />
-            </Popup>
+              coordinates={[
+                event.event_longitude,
+                event.event_latitude,
+              ]}
+              showInfo={showInfo}
+              event={event}
+            />
           )}
 
-          {create && (
-            <Popup
-              className="create-popup"
-              key={'create'}
-              offset={[0, -20]}
-              coordinates={create.center}>
-              <Form
-                id={events?.length + 1}
-                latitude={create.center[1]}
-                longitude={create.center[0]}
-              />
-            </Popup>
+          {info && (
+            <Card
+              setModalCopy={setModalCopy}
+              setModal={setModal}
+              setInfo={setInfo}
+              event={event}
+            />
           )}
 
-          {info && <Card setInfo={setInfo} event={event} />}
+          {modal && <Modal onClose={onCloseModal} copy={modalCopy} />}
         </>
       </Map>
     </>
