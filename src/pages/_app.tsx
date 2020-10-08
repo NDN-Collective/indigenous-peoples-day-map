@@ -2,6 +2,8 @@ import React, {FunctionComponent} from 'react'
 import Head from 'next/head'
 import type {AppProps} from 'next/app'
 
+require('iframe-resizer/js/iframeResizer.contentWindow')
+
 import 'mapbox-gl/dist/mapbox-gl.css'
 import '../styles/index.css'
 import 'react-datetime/css/react-datetime.css'

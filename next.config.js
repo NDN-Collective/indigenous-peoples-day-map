@@ -1,5 +1,4 @@
-
-module.exports = ({
+module.exports = {
   enableSvg: true,
   poweredByHeader: false,
   compress: true,
@@ -9,4 +8,4 @@ module.exports = ({
   webpack(config, options) {
     return config
   },
-})
+}
