@@ -9,8 +9,7 @@ module.exports = {
   quote: 'single',
   trailingComma: 'all',
   semi: false,
-  overrides: [
-    {
+  overrides: [{
       files: ['*.md'],
       options: {
         parser: 'markdown',

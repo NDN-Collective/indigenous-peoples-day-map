@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "run-s next:build next:export",
-    "lint": "run-s lint*",
-    "lint:eslint": "eslint ./pages/* --config .eslintrc.js --ignore-path .eslintrc.js",
-    "lint:prettier": "prettier ./pages/* --write --config prettier.config.js",
+    "lint": "run-s lint:*",
+    "lint:eslint": "eslint ./src/pages/* --config .eslintrc.js --ignore-path .eslintrc.js",
+    "lint:prettier": "prettier ./src/pages/* --write --config prettier.config.js",
     "next:dev": "next dev",
     "next:build": "next build",
     "next:export": "next export",
